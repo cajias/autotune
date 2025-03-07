@@ -244,6 +244,7 @@ def run_session(stdscr, user_id, session_num):
 def main():
     parser = argparse.ArgumentParser(description="Record voice samples with a teleprompter interface")
     parser.add_argument("user_id", help="Unique identifier for the user")
+    parser.add_argument("--simple", action="store_true", help="Use simple mode without curses interface")
     args = parser.parse_args()
     
     # Get session information
@@ -265,8 +266,32 @@ def main():
     print(f"Completed sessions: {len(completed)}")
     
     try:
-        # Run the recording session
-        success = curses.wrapper(run_session, args.user_id, next_session)
+        if args.simple:
+            # Simple mode without curses
+            print("\nSimple mode: Recording without teleprompter interface")
+            
+            # Create recording directory
+            session_dir = sessions_dir / f"session_{next_session}"
+            session_dir.mkdir(parents=True, exist_ok=True)
+            output_file = session_dir / f"recording_{next_session}.wav"
+            
+            # Show the text to read
+            text = TEXT_SAMPLES[next_session - 1]
+            print("\nPlease read the following text:")
+            print("=" * 80)
+            print(text)
+            print("=" * 80)
+            
+            input("\nPress Enter to start recording (will record for 1 minute)...")
+            
+            print("Recording... Please read the text above.")
+            record_audio(output_file, RECORDING_LENGTH)
+            print("Recording complete!")
+            
+            success = True
+        else:
+            # Run the recording session with curses interface
+            success = curses.wrapper(run_session, args.user_id, next_session)
         
         if success:
             # Update session information
@@ -283,6 +308,7 @@ def main():
         print("\nRecording session interrupted.")
     except Exception as e:
         print(f"\nError during recording: {e}")
+        print("Try using --simple mode if you're having issues with the interface.")
     
     if len(completed) >= SESSIONS_PER_USER:
         print("\nAll recording sessions completed!")
